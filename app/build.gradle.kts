@@ -1,5 +1,3 @@
-import org.gradle.api.JavaVersion
-
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -21,7 +19,7 @@ android {
         compose = true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.8"
+        kotlinCompilerExtensionVersion = "1.5.10" // Correct version for Kotlin 1.9.22
     }
 
     compileOptions {
@@ -36,20 +34,20 @@ android {
 dependencies {
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
-    
+
+    // Compose BOM
     val composeBom = platform("androidx.compose:compose-bom:2024.02.00")
     implementation(composeBom)
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("androidx.compose.foundation:foundation") // Required for Column, Modifier
     implementation("androidx.activity:activity-compose:1.8.2")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
-    
-    // This is required for Column, Modifier, verticalScroll, etc.
-    implementation("androidx.compose.foundation:foundation")
 
+    // Networking
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
-    
-    // Corrected FFmpeg coordinate to the official maintained fork
-    implementation("com.arthenica:ffmpeg-kit-full:6.0-2.LTS")
+
+    // FFmpegKit - Correct maintained fork
+    implementation("dev.ffmpegkit-maintained:ffmpeg-kit-full:8.1.7")
 }
