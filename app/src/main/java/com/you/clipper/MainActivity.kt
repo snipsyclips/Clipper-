@@ -1,13 +1,9 @@
-package com.you.clipper
-import android.Manifest
-import android.content.Intent
-import android.net.Uri
-import android.os.Build
+// MainActivity.kt
+package com.you.aiclipper
+
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -15,32 +11,83 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val cfg = Settings(this)
         setContent {
             MaterialTheme {
-                var groq by remember { mutableStateOf(cfg.groqKey) }
-                var gemini by remember { mutableStateOf(cfg.geminiKey) }
-                var status by remember { mutableStateOf("Pick a video — processing runs in the background") }
-                val notifPerm = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
-                val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
-                    if (uri == null) return@rememberLauncherForActivityResult
-                    runCatching { contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
-                    cfg.groqKey = groq; cfg.geminiKey = gemini
-                    if (Build.VERSION.SDK_INT >= 33) notifPerm.launch(Manifest.permission.POST_NOTIFICATIONS)
-                    startForegroundService(Intent(this@MainActivity, ClipperService::class.java).putExtra(ClipperService.EXTRA_URI, uri.toString()))
-                    status = "Processing in background — check the notification"
-                }
-                Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Clipper", style = MaterialTheme.typography.headlineMedium)
-                    OutlinedTextField(groq, { groq = it }, label = { Text("Groq API key") }, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(gemini, { gemini = it }, label = { Text("Gemini API key") }, modifier = Modifier.fillMaxWidth())
-                    Button(onClick = { picker.launch(arrayOf("video/*")) }, enabled = groq.isNotBlank() && gemini.isNotBlank()) { Text("Pick video & clip") }
-                    Text(status)
-                }
+                ClipperUI()
             }
         }
+    }
+}
+
+@Composable
+fun ClipperUI() {
+    var prompt by remember { mutableStateOf("") }
+    var videoStyle by remember { mutableStateOf("Podcast") }
+    var autoCaptions by remember { mutableStateOf(true) }
+    var faceTracking by remember { mutableStateOf(true) }
+    var bRoll by remember { mutableStateOf(false) }
+    var isProcessing by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text("AI Video Clipper Pro", style = MaterialTheme.typography.headlineMedium)
+        
+        // The Magic Prompt
+        OutlinedTextField(
+            value = prompt,
+            onValueChange = { prompt = it },
+            label = { Text("What do you want? (e.g., 'Find the funniest moments and add yellow captions')") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        // Dropdown for Style
+        Text("Video Style:")
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(selected = videoStyle == "Podcast", onClick = { videoStyle = "Podcast" }, label = { Text("Podcast") })
+            FilterChip(selected = videoStyle == "Gaming", onClick = { videoStyle = "Gaming" }, label = { Text("Gaming") })
+            FilterChip(selected = videoStyle == "Vlog", onClick = { videoStyle = "Vlog" }, label = { Text("Vlog") })
+        }
+
+        // Toggles for Advanced Features
+        Text("AI Enhancements:")
+        SwitchRow("Auto-Captions (Karaoke Style)", autoCaptions) { autoCaptions = it }
+        SwitchRow("Auto Face Tracking (9:16)", faceTracking) { faceTracking = it }
+        SwitchRow("Auto B-Roll Insertion", bRoll) { bRoll = it }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Button(
+            onClick = { 
+                isProcessing = true 
+                // Send prompt and video to Python Backend via Retrofit
+                // See Backend code below
+            },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !isProcessing
+        ) {
+            Text(if (isProcessing) "Generating Magic..." else "Generate Clips")
+        }
+
+        if (isProcessing) {
+            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            Text("Analyzing audio, finding viral moments, and rendering...")
+        }
+    }
+}
+
+@Composable
+fun SwitchRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(label)
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
